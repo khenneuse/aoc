@@ -38,7 +38,7 @@ const scoreCard = (card: string) => {
     case "Q":
       return 12;
     case "J":
-      return 11;
+      return 1;
     case "T":
       return 10;
     default:
@@ -66,36 +66,66 @@ const countCards = (hand: string) => {
   }, {} as Record<string, number>);
 };
 
-const fiveOfAKind = (keys: string[]) => {
-  return keys.length === 1;
-};
-
-const fourOfAKind = (keys: string[], counts: Record<string, number>) => {
-  if (keys.length !== 2) {
-    return false;
+const fiveOfAKind = (mostCard: string, counts: Record<string, number>) => {
+  if (counts[mostCard] === 5) {
+    return true;
   }
-  for (let key of keys) {
-    if (counts[key] === 4) {
-      return true;
-    }
+  const hasWildCards = counts["J"];
+
+  if (hasWildCards) {
+    return hasWildCards + counts[mostCard] === 5;
   }
   return false;
 };
 
-const fullHouse = (keys: string[]) => {
-  return keys.length === 2;
-};
-
-const threeOfAKind = (keys: string[], counts: Record<string, number>) => {
-  if (keys.length !== 3) {
-    return false;
+const fourOfAKind = (mostCard: string, counts: Record<string, number>) => {
+  if (counts[mostCard] === 4) {
+    return true;
   }
-  for (let key of keys) {
-    if (counts[key] === 3) {
-      return true;
-    }
+  const hasWildCards = counts["J"];
+  // console.log({ mostCard, counts, hasWildCards });
+  if (hasWildCards) {
+    return hasWildCards + counts[mostCard] === 4;
   }
   return false;
+};
+
+const fullHouse = (keys: string[], counts: Record<string, number>) => {
+  if (keys.length === 2) {
+    return true;
+  }
+  let pairCount = 0;
+  for (let key of keys) {
+    if (counts[key] === 2) {
+      pairCount += 1;
+    }
+  }
+  const hasWildCards = counts["J"];
+
+  return pairCount === 2 && hasWildCards;
+};
+
+const threeOfAKind = (
+  mostCard: string,
+  keys: string[],
+  counts: Record<string, number>,
+) => {
+  if (counts[mostCard] === 3) {
+    return true;
+  }
+  const hasWildCards = counts["J"];
+
+  if (hasWildCards === 2) {
+    return true;
+  }
+
+  let pairCount = 0;
+  for (let key of keys) {
+    if (counts[key] === 2) {
+      pairCount += 1;
+    }
+  }
+  return pairCount && hasWildCards;
 };
 
 const twoPair = (keys: string[], counts: Record<string, number>) => {
@@ -108,19 +138,39 @@ const twoPair = (keys: string[], counts: Record<string, number>) => {
       pairCount += 1;
     }
   }
-  return pairCount === 2;
+
+  const hasWildCards = counts["J"];
+
+  return pairCount === 2 || (pairCount && hasWildCards);
 };
 
-const onePair = (keys: string[], counts: Record<string, number>) => {
-  if (keys.length !== 4) {
-    return false;
+const onePair = (
+  mostCard: string,
+  keys: string[],
+  counts: Record<string, number>,
+) => {
+  if (counts[mostCard] === 2) {
+    return true;
   }
-  for (let key of keys) {
-    if (counts[key] === 2) {
-      return true;
+  const hasWildCards = counts["J"];
+
+  return !!hasWildCards;
+};
+
+const findMostCards = (
+  keys: string[],
+  counts: Record<string, number>,
+): string => {
+  if (keys.length === 1) {
+    return keys[0];
+  }
+  const startKey = keys[0] === "J" ? keys[1] : keys[0];
+  return keys.reduce((max, key) => {
+    if (key === "J") {
+      return max;
     }
-  }
-  return false;
+    return counts[key] > counts[max] ? key : max;
+  }, startKey);
 };
 
 const rankRounds = (buckets: Buckets): Hand[] => {
@@ -150,19 +200,19 @@ const part1 = (rawInput: string) => {
     (acc, round) => {
       const cardCounts = countCards(round.hand);
       const keys = Object.keys(cardCounts);
-      console.log({ round, cardCounts });
+      const mostCards = findMostCards(keys, cardCounts);
 
-      if (fiveOfAKind(keys)) {
+      if (fiveOfAKind(mostCards, cardCounts)) {
         acc.five.push({ ...round, type: "five" });
-      } else if (fourOfAKind(keys, cardCounts)) {
+      } else if (fourOfAKind(mostCards, cardCounts)) {
         acc.four.push({ ...round, type: "four" });
-      } else if (fullHouse(keys)) {
+      } else if (fullHouse(keys, cardCounts)) {
         acc.full.push({ ...round, type: "full" });
-      } else if (threeOfAKind(keys, cardCounts)) {
+      } else if (threeOfAKind(mostCards, keys, cardCounts)) {
         acc.three.push({ ...round, type: "three" });
       } else if (twoPair(keys, cardCounts)) {
         acc.twoPair.push({ ...round, type: "two" });
-      } else if (onePair(keys, cardCounts)) {
+      } else if (onePair(mostCards, keys, cardCounts)) {
         acc.pair.push({ ...round, type: "pair" });
       } else {
         acc.highCard.push({ ...round, type: "high" });
@@ -188,26 +238,67 @@ const part1 = (rawInput: string) => {
 
 const part2 = (rawInput: string) => {
   const input = parseInput(rawInput);
+  const rounds = getHands(input);
+  const buckets = rounds.reduce(
+    (acc, round) => {
+      const cardCounts = countCards(round.hand);
+      const keys = Object.keys(cardCounts);
+      const mostCards = findMostCards(keys, cardCounts);
 
-  return;
+      if (fiveOfAKind(mostCards, cardCounts)) {
+        acc.five.push({ ...round, type: "five" });
+      } else if (fourOfAKind(mostCards, cardCounts)) {
+        acc.four.push({ ...round, type: "four" });
+      } else if (fullHouse(keys, cardCounts)) {
+        acc.full.push({ ...round, type: "full" });
+      } else if (threeOfAKind(mostCards, keys, cardCounts)) {
+        acc.three.push({ ...round, type: "three" });
+      } else if (twoPair(keys, cardCounts)) {
+        acc.twoPair.push({ ...round, type: "two" });
+      } else if (onePair(mostCards, keys, cardCounts)) {
+        acc.pair.push({ ...round, type: "pair" });
+      } else {
+        acc.highCard.push({ ...round, type: "high" });
+      }
+      return acc;
+    },
+    {
+      five: [],
+      four: [],
+      full: [],
+      three: [],
+      twoPair: [],
+      pair: [],
+      highCard: [],
+    } as Buckets,
+  );
+  // console.log(buckets);
+  const rankedRounds = rankRounds(buckets);
+  rankedRounds.forEach((round) => {
+    console.log(round);
+  });
+  return rankedRounds.reduce((acc, hand, index) => {
+    const score = hand.bid * (index + 1);
+    return acc + score;
+  }, 0);
 };
 
 run({
   part1: {
     tests: [
-      {
-        input: `32T3K 765
-        T55J5 684
-        KK677 28
-        KTJJT 220
-        QQQJA 483`,
-        expected: 6440,
-      },
-      {
-        input: `JJJJJ 10
-        T55J5 2`,
-        expected: 22,
-      },
+      // {
+      //   input: `32T3K 765
+      //   T55J5 684
+      //   KK677 28
+      //   KTJJT 220
+      //   QQQJA 483`,
+      //   expected: 6440,
+      // },
+      // {
+      //   input: `JJJJJ 10
+      //   T55J5 2`,
+      //   expected: 22,
+      // },
     ],
     solution: part1,
   },
@@ -221,9 +312,15 @@ run({
         QQQJA 483`,
         expected: 5905,
       },
+      {
+        input: `JJJ77 174
+        JJ2AA 695
+        JJAA9 242`,
+        expected: 1701,
+      },
     ],
     solution: part2,
   },
   trimTestInputs: true,
-  onlyTests: true,
+  onlyTests: false,
 });
