@@ -1,10 +1,4 @@
-import run from "aocrunner";
-import { Hand, Buckets } from "./types";
-import { runPart2 } from "./part2";
-import { runPart1 } from "./part1";
-
-const parseInput = (rawInput: string) =>
-  rawInput.split("\n").map((s) => s.trim());
+import { Buckets, Hand } from "./types";
 
 const getHands = (input: string[]): Hand[] => {
   return input.map((line) => {
@@ -180,54 +174,48 @@ const rankRounds = (buckets: Buckets): Hand[] => {
   ];
 };
 
-const part1 = (rawInput: string) => {
-  const input = parseInput(rawInput);
-  return runPart1(input);
-};
+export function runPart2(input: string[]): number {
+  const rounds = getHands(input);
+  const buckets = rounds.reduce(
+    (acc, round) => {
+      const cardCounts = countCards(round.hand);
+      const keys = Object.keys(cardCounts);
+      const mostCards = findMostCards(keys, cardCounts);
 
-const part2 = (rawInput: string) => {
-  const input = parseInput(rawInput);
-  return runPart2(input);
-};
-
-run({
-  part1: {
-    tests: [
-      {
-        input: `32T3K 765
-        T55J5 684
-        KK677 28
-        KTJJT 220
-        QQQJA 483`,
-        expected: 6440,
-      },
-      {
-        input: `JJJJJ 10
-        T55J5 2`,
-        expected: 22,
-      },
-    ],
-    solution: part1,
-  },
-  part2: {
-    tests: [
-      {
-        input: `32T3K 765
-        T55J5 684
-        KK677 28
-        KTJJT 220
-        QQQJA 483`,
-        expected: 5905,
-      },
-      {
-        input: `JJJ77 174
-        JJ2AA 695
-        JJAA9 242`,
-        expected: 1701,
-      },
-    ],
-    solution: part2,
-  },
-  trimTestInputs: true,
-  onlyTests: false,
-});
+      if (fiveOfAKind(mostCards, cardCounts)) {
+        acc.five.push({ ...round, type: "five" });
+      } else if (fourOfAKind(mostCards, cardCounts)) {
+        acc.four.push({ ...round, type: "four" });
+      } else if (fullHouse(keys, cardCounts)) {
+        acc.full.push({ ...round, type: "full" });
+      } else if (threeOfAKind(mostCards, keys, cardCounts)) {
+        acc.three.push({ ...round, type: "three" });
+      } else if (twoPair(keys, cardCounts)) {
+        acc.twoPair.push({ ...round, type: "two" });
+      } else if (onePair(mostCards, keys, cardCounts)) {
+        acc.pair.push({ ...round, type: "pair" });
+      } else {
+        acc.highCard.push({ ...round, type: "high" });
+      }
+      return acc;
+    },
+    {
+      five: [],
+      four: [],
+      full: [],
+      three: [],
+      twoPair: [],
+      pair: [],
+      highCard: [],
+    } as Buckets,
+  );
+  // console.log(buckets);
+  const rankedRounds = rankRounds(buckets);
+  rankedRounds.forEach((round) => {
+    console.log(round);
+  });
+  return rankedRounds.reduce((acc, hand, index) => {
+    const score = hand.bid * (index + 1);
+    return acc + score;
+  }, 0);
+}
