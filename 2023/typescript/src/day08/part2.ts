@@ -1,8 +1,4 @@
-import run from "aocrunner";
 import { Node } from "./types";
-
-// import { runPart1 } from "./part1";
-// import { runPart2 } from "./part2";
 
 const buildGraph = (
   input: string[],
@@ -53,53 +49,3 @@ export function runPart2(input: string[]): number {
 
   return lcm(stepCounts);
 }
-
-const parseInput = (rawInput: string) =>
-  rawInput.split("\n").map((s) => s.trim());
-
-const part1 = (rawInput: string) => {
-  const input = parseInput(rawInput);
-  // return runPart1(input);
-  return;
-};
-
-const part2 = (rawInput: string) => {
-  const input = parseInput(rawInput);
-  return runPart2(input);
-};
-
-run({
-  part1: {
-    tests: [
-      {
-        input: `LLR
-
-        AAA = (BBB, BBB)
-        BBB = (AAA, ZZZ)
-        ZZZ = (ZZZ, ZZZ)`,
-        expected: 6,
-      },
-    ],
-    solution: part1,
-  },
-  part2: {
-    tests: [
-      {
-        input: `LR
-
-        11A = (11B, XXX)
-        11B = (XXX, 11Z)
-        11Z = (11B, XXX)
-        22A = (22B, XXX)
-        22B = (22C, 22C)
-        22C = (22Z, 22Z)
-        22Z = (22B, 22B)
-        XXX = (XXX, XXX)`,
-        expected: 6,
-      },
-    ],
-    solution: part2,
-  },
-  trimTestInputs: true,
-  onlyTests: false,
-});
